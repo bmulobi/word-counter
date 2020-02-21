@@ -4,12 +4,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"wordcounter/counter"
 	"wordcounter/fetchapi"
 )
 
 // main is the entry point for the application
 func main() {
-	fmt.Println("Starting Word Counter")
+	fmt.Println("\nStarting Word Counter")
 
 	var commentId string
 	var postId string
@@ -17,17 +18,14 @@ func main() {
 	flag.StringVar(&commentId, "commentId", "0", "the comment ID")
 	flag.StringVar(&postId, "postId", "0", "the post ID")
 	flag.Parse()
-
-	fmt.Println(commentId, postId)
-
-	api := &fetchapi.FetchApi{
+	api := &fetchapi.Arguments{
 		PostId:    postId,
 		CommentId: commentId,
 	}
 
 	comments := api.GetComments()
+	count := counter.Counter{WordCounts: map[string]int{}}
+	count.CountWords(comments)
 
-	fmt.Println(comments)
-
-
+	count.DisplayLeastUsed()
 }
