@@ -3,45 +3,49 @@
 package fetchapi
 
 import (
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 )
 
-// FetchApi contains the query parameters (if any) for fetching comments
-type FetchApi struct {
-	PostId string
+// Arguments contains the query parameters (if any) for fetching comments
+type Arguments struct {
+	PostId    string
 	CommentId string
 }
 
+// Comment holds only the comment string we are interested in
+// this will ensure we discard the other fields from the API response
+// during decoding
+type Comment struct {
+	Body string
+}
+
 // Get comments from the API given the url
-func (api *FetchApi) GetComments() string {
-
+func (api *Arguments) GetComments() []Comment {
 	url, err := api.buildUrl()
-
 	if err != nil {
 		fmt.Println("Error trying to build url : ", err)
 		log.Fatal(err)
 	}
 
-	response, err := http.Get(url)
+	client := http.Client{Timeout: 10 * time.Second}
+	response, err := client.Get(url)
 	if err != nil {
 		fmt.Println("Error trying to fetch comments : ", err)
 		log.Fatal(err)
 	}
 	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		fmt.Println(err)
-		log.Fatal(err)
-	}
+	var comments []Comment
+	json.NewDecoder(response.Body).Decode(&comments)
 
-	return string(body)
+	return comments
 }
 
-func (api *FetchApi) buildUrl() (string, error) {
+func (api *Arguments) buildUrl() (string, error) {
 	var commentIdInt int
 	var postIdInt int
 
@@ -57,7 +61,8 @@ func (api *FetchApi) buildUrl() (string, error) {
 	case postIdInt != 0 && commentIdInt != 0:
 		url = fmt.Sprintf(
 			"https://jsonplaceholder.typicode.com/comments/?postId=%s&id=%s",
-			api.PostId, api.CommentId)
+			api.PostId, api.CommentId,
+		)
 	case postIdInt != 0:
 		url = fmt.Sprintf("https://jsonplaceholder.typicode.com/comments/?postId=%s", api.PostId)
 	case commentIdInt != 0:
